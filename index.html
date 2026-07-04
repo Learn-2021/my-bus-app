@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚌 屯元天綜合交通到站預報面板</title>
+    <title>交通到站預報</title>
     <style>
         :root {
             --kmb-red: #e60012;
@@ -46,7 +46,7 @@
         .weather-icon {
             width: 50px;
             height: 50px;
-            display: none; /* 有數據才顯示 */
+            display: none;
         }
 
         .weather-info {
@@ -86,7 +86,6 @@
             border-radius: 4px;
         }
 
-        /* 未來預報樣式 */
         .forecast-box {
             display: flex;
             gap: 12px;
@@ -130,7 +129,6 @@
             margin-top: 2px;
         }
 
-        /* ⚙️ 天氣設定按鈕與面板 */
         .settings-btn {
             background: #e5e5ea;
             border: none;
@@ -204,6 +202,18 @@
         .bus-section-title.kmb { border-left: 3px solid var(--kmb-red); color: var(--kmb-red); }
         .bus-section-title.mtrb { border-left: 3px solid var(--mtr-blue); color: var(--mtr-blue); margin-top: 25px; }
 
+        /* 九巴多站點副標題樣式 */
+        .kmb-stop-divider {
+            font-size: 12px;
+            color: #555;
+            font-weight: bold;
+            background: #f2f2f7;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+
         .eta-row {
             display: flex;
             align-items: center;
@@ -245,7 +255,8 @@
             white-space: nowrap;
         }
 
-        .time-tag.highlight { background-color: #ff9500; color: rgb(7, 7, 7); }
+        /* 【已修正】高亮首班車字體顏色改為黑色 */
+        .time-tag.highlight { background-color: #ff9500; color: #000000; }
 
         .platform-title {
             background: #f2f2f7;
@@ -281,6 +292,7 @@
 </head>
 <body>
 
+    <!-- 🌤️ 天氣與實時時鐘頂欄 -->
     <div class="weather-bar">
         <div class="weather-left">
             <img class="weather-icon" id="weather-img" src="" alt="weather icon">
@@ -296,8 +308,7 @@
                     <span id="item-uv">紫外線指數: --</span>
                     <span id="item-wind">風速: --</span>
                 </div>
-                <div class="forecast-box" id="item-forecast">
-                    </div>
+                <div class="forecast-box" id="item-forecast"></div>
                 <div class="weather-warnings-container" id="weather-warnings"></div>
             </div>
         </div>
@@ -319,7 +330,9 @@
         </div>
     </div>
 
+    <!-- 面板主要網格 -->
     <div class="dashboard-grid">
+        <!-- 1. 綜合巴士面板 -->
         <div class="panel-card" id="bus-card">
             <div class="panel-title bus-title">🚌 綜合巴士到站預報</div>
             <div class="bus-section-title kmb" id="kmb-sec-title">🔴 九巴班次</div>
@@ -328,6 +341,7 @@
             <div id="mtrb-container">正在載入...</div>
         </div>
 
+        <!-- 2. 輕鐵面板 -->
         <div class="panel-card" id="lrt-card">
             <div class="panel-title lrt-title">🔮 輕鐵下班車</div>
             <div id="lrt-container">正在載入...</div>
@@ -337,7 +351,14 @@
 <script>
     // ==================== 🛠️ 數據設定中心 ====================
     const CONFIG = {
-        kmb: { enabled: true, stop_id: "B896D9459B2C84FA", filter_routes: ["68E", "68F"] },
+        // 【升級】九巴支援多站點配置，可在 stops 內自由增刪站點
+        kmb: { 
+            enabled: true, 
+            stops: [
+                { stop_id: "B896D9459B2C84FA", stop_name: "元朗公園", filter_routes: ["68E", "68F"] },
+                { stop_id: "70FEB409760C77EE", stop_name: "元朗公園站(大馬路)", filter_routes: ["276P", "68X", "268X"] } // 👈 這裡成功加入了你的新站點！可以自己修改 stop_name
+            ]
+        },
         lrt: { enabled: true, station_id: "560" },
         mtr_bus: {
             enabled: true,
@@ -349,7 +370,6 @@
         refresh_seconds: 30 
     };
 
-    // 頂部時鐘
     function initClock() {
         const weeks = ['日', '一', '二', '三', '四', '五', '六'];
         setInterval(() => {
@@ -364,24 +384,18 @@
         menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
     }
 
-    // 儲存與套用使用者對天氣資訊的勾選
     function applyWeatherSettings() {
         const options = ['icon', 'rh', 'rain', 'uv', 'wind', 'forecast'];
         const savedConfig = {};
-
         options.forEach(opt => {
             const isChecked = document.getElementById(`chk-${opt}`).checked;
             savedConfig[opt] = isChecked;
-            
-            // 控制介面顯示或隱藏
-            const el = document.getElementById(`item-${opt}`) || document.getElementById(`weather-img`);
+            const el = document.getElementById(`item-${opt}`) || document.getElementById('weather-img');
             if (el) el.style.display = isChecked ? (opt === 'icon' ? 'block' : '') : 'none';
         });
-
         localStorage.setItem('weather_display_config', JSON.stringify(savedConfig));
     }
 
-    // 載入當初記下來的勾選狀態
     function loadSavedWeatherSettings() {
         const saved = localStorage.getItem('weather_display_config');
         if (saved) {
@@ -394,15 +408,12 @@
         applyWeatherSettings();
     }
 
-    // 抓取香港天文台詳細數據
-    // 抓取香港天文台詳細數據
+    // 【已修正】更新天文台數據對接
     async function fetchHKOWeather() {
         try {
-            // A. 抓取當前實時天氣
             const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
             const data = await res.json();
             
-            // 1. 處理溫度與圖標
             let temp = 26;
             if (data.temperature && data.temperature.data) {
                 const regional = data.temperature.data.find(p => p.place === "元朗公園") || data.temperature.data.find(p => p.place === "屯門") || data.temperature.data[0];
@@ -415,17 +426,14 @@
 
             if (data.icon && data.icon[0]) {
                 const img = document.getElementById('weather-img');
-                // 【修正】路徑改為正確的 wxicon
-                img.src = `https://www.hko.gov.hk/images/wxicon/pic${data.icon[0]}.png`;
+                img.src = `https://www.hko.gov.hk/images/wxicon/pic${data.icon[0]}.png`; // 修正路徑為 wxicon
             }
             
             document.getElementById('weather-desc').innerText = data.weatherDescription ? data.weatherDescription.split('。')[0] : "大致多雲";
 
-            // 2. 相對濕度
             const humidity = (data.humidity && data.humidity.data[0]) ? data.humidity.data[0].value : '--';
             document.getElementById('item-rh').innerText = `相對濕度: ${humidity}%`;
 
-            // 3. 地區降雨量
             let rainVal = "0 毫米";
             if (data.rainfall && data.rainfall.data) {
                 const regionalRain = data.rainfall.data.find(p => p.place === "元朗") || data.rainfall.data.find(p => p.place === "屯門") || data.rainfall.data[0];
@@ -433,7 +441,6 @@
             }
             document.getElementById('item-rain').innerText = `地區降雨量: ${rainVal}`;
 
-            // 4. 紫外線
             let uvVal = "無";
             if (data.uvIndex && data.uvIndex.data && data.uvIndex.data[0]) {
                 const v = data.uvIndex.data[0].value;
@@ -443,7 +450,6 @@
             }
             document.getElementById('item-uv').innerText = `紫外線指數: ${uvVal}`;
 
-            // 5. 風向風速
             let windText = "微風";
             if (data.directionOfWind && data.directionOfWind.value) {
                 const speed = data.maxGust && data.maxGust.value ? data.maxGust.value : 10;
@@ -451,7 +457,6 @@
             }
             document.getElementById('item-wind').innerText = `風速: ${windText}`;
 
-            // 6. 天氣警告訊號橫條
             const warnBox = document.getElementById('weather-warnings');
             warnBox.innerHTML = '';
             if (data.warningMessage) {
@@ -460,7 +465,6 @@
                 });
             }
 
-            // B. 額外抓取未來九天預報（提取前兩天）
             const resFnd = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=tc');
             const dataFnd = await resFnd.json();
             const forecastContainer = document.getElementById('item-forecast');
@@ -470,21 +474,16 @@
                 for (let i = 0; i < 2; i++) {
                     const day = dataFnd.weatherForecast[i];
                     const shortDate = day.forecastDate.substring(4,6) + '/' + day.forecastDate.substring(6,8);
-                    // 【修正】點出 .value 才能順利讀取到溫度數字
                     forecastContainer.innerHTML += `
                         <div class="forecast-day">
                             📅 <b>${shortDate} (${day.week})</b>: ${day.forecastMintemp.value}-${day.forecastMaxtemp.value}°C | ${day.forecastWeather}
-                        </div>`;
+                        </div>`; // 修正點出 .value
                 }
             }
-            
-            applyWeatherSettings(); 
-        } catch (e) {
-            console.error("天氣更新失敗", e);
-        }
+            applyWeatherSettings();
+        } catch (e) { console.error("天氣更新失敗", e); }
     }
 
-    // 其他交通 ETA 模組（九巴、輕鐵、港鐵巴士）維持高效能運作...
     function getKMBMinutes(etaTime) {
         if (!etaTime) return "---";
         const mins = Math.ceil((new Date(etaTime) - new Date()) / 60000);
@@ -492,36 +491,57 @@
     }
 
     function checkBusCardVisibility() {
-        const kmbOn = CONFIG.kmb.enabled;
+        const kmbOn = CONFIG.kmb.enabled && CONFIG.kmb.stops && CONFIG.kmb.stops.length > 0;
         const mtrbOn = CONFIG.mtr_bus.enabled && CONFIG.mtr_bus.stops.length > 0;
         document.getElementById('bus-card').style.display = (!kmbOn && !mtrbOn) ? 'none' : 'block';
     }
 
+    // 【升級】支援多九巴站點遍歷抓取與分欄顯示
     async function updateKMB() {
         const container = document.getElementById('kmb-container');
         const title = document.getElementById('kmb-sec-title');
-        if (!CONFIG.kmb.enabled) { container.style.display = title.style.display = 'none'; checkBusCardVisibility(); return; }
+        if (!CONFIG.kmb.enabled || !CONFIG.kmb.stops || CONFIG.kmb.stops.length === 0) { 
+            container.style.display = title.style.display = 'none'; 
+            checkBusCardVisibility(); 
+            return; 
+        }
         try {
-            const res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${CONFIG.kmb.stop_id}`);
-            const json = await res.json();
-            let raw = json.data || [];
-            if (CONFIG.kmb.filter_routes.length > 0) raw = raw.filter(item => CONFIG.kmb.filter_routes.includes(item.route));
-            raw.sort((a, b) => a.route.localeCompare(b.route) || a.eta_seq - b.eta_seq);
-            if (raw.length === 0) { container.innerHTML = '<div class="no-data">目前沒有符合的九巴班次</div>'; return; }
-            const groups = {};
-            raw.forEach(item => {
-                if (!groups[item.route]) groups[item.route] = { dest: item.dest_tc, etas: [] };
-                if (item.eta) groups[item.route].etas.push(getKMBMinutes(item.eta));
-            });
-            let html = '';
-            for (const [route, info] of Object.entries(groups)) {
-                html += `<div class="eta-row">
-                    <div class="route-badge kmb-bg">${route}</div>
-                    <div class="route-dest">往 ${info.dest}</div>
-                    <div class="eta-times">${info.etas.slice(0, 3).map((t, idx) => `<span class="time-tag ${idx===0?'highlight':''}">${t}</span>`).join('')}</div>
-                </div>`;
+            let fullHtml = '';
+            
+            for (const stop of CONFIG.kmb.stops) {
+                const res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stop.stop_id}`);
+                const json = await res.json();
+                let raw = json.data || [];
+                
+                if (stop.filter_routes && stop.filter_routes.length > 0) {
+                    raw = raw.filter(item => stop.filter_routes.includes(item.route));
+                }
+                
+                raw.sort((a, b) => a.route.localeCompare(b.route) || a.eta_seq - b.eta_seq);
+                
+                // 加入站點分隔小標題
+                fullHtml += `<div class="kmb-stop-divider">📍 ${stop.stop_name}</div>`;
+                
+                if (raw.length === 0) {
+                    fullHtml += '<div class="no-data">目前沒有符合的九巴班次</div>';
+                    continue;
+                }
+                
+                const groups = {};
+                raw.forEach(item => {
+                    if (!groups[item.route]) groups[item.route] = { dest: item.dest_tc, etas: [] };
+                    if (item.eta) groups[item.route].etas.push(getKMBMinutes(item.eta));
+                });
+                
+                for (const [route, info] of Object.entries(groups)) {
+                    fullHtml += `<div class="eta-row">
+                        <div class="route-badge kmb-bg">${route}</div>
+                        <div class="route-dest">往 ${info.dest}</div>
+                        <div class="eta-times">${info.etas.slice(0, 3).map((t, idx) => `<span class="time-tag ${idx===0?'highlight':''}">${t}</span>`).join('')}</div>
+                    </div>`;
+                }
             }
-            container.innerHTML = html;
+            container.innerHTML = fullHtml;
         } catch (e) { container.innerHTML = `<div class="error-msg">❌ 九巴載入失敗</div>`; }
     }
 
@@ -552,6 +572,7 @@
         } catch (e) { container.innerHTML = `<div class="error-msg">❌ 輕鐵載入失敗</div>`; }
     }
 
+    // 【已修正】精準比對 0 分鐘
     async function updateMTRBus() {
         const container = document.getElementById('mtrb-container');
         const title = document.getElementById('mtrb-sec-title');
@@ -566,7 +587,6 @@
                 const json = await res.json();
                 const matchedStop = (json.busStop || []).find(s => s.busStopId === target.stop_id);
                 if (matchedStop && matchedStop.bus && matchedStop.bus.length > 0) {
-                    // 【修正】改用精準全字串比對，避免 20/30/40 分鐘的「0 分鐘」被誤切
                     const etas = matchedStop.bus.map(b => {
                         const t = b.arrivalTimeText || b.departureTimeText || '---';
                         return (t === '0 分鐘' || t === '即將抵達') ? '即將開出' : t;
@@ -590,7 +610,6 @@
         fetchHKOWeather();
     }
 
-    // 關閉設定點擊外面即隱藏
     document.addEventListener('click', function(e) {
         const menu = document.getElementById('settings-menu');
         const btn = document.querySelector('.settings-btn');
