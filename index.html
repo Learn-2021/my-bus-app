@@ -289,7 +289,7 @@
             white-space: nowrap;
         }
 
-        .time-tag.highlight { background-color: #ff9500; color: #000000; }
+        .time-tag.highlight { background-color: #c5c5c5; color: #000000; }
 
         .platform-title {
             background: var(--sub-bg);
@@ -352,10 +352,11 @@
             text-align: center;
         }
 
-        /* 放大目的地字體 */
-        body.large-text .route-dest {
-            font-size: 1.35rem !important;
-            font-weight: bold;
+        /* 放大區域標題（如：港鐵巴士、九巴預報等） */
+        body.large-text h2, 
+        body.large-text .section-title,
+        body.large-text #mtrb-sec-title {
+            font-size: 1.6rem !important;
         }
 
         /* 放大時間標籤 */
@@ -364,17 +365,34 @@
             padding: 6px 12px !important;
         }
 
-        /* 放大區域標題（如：港鐵巴士、九巴預報等） */
-        body.large-text h2, 
-        body.large-text .section-title,
-        body.large-text #mtrb-sec-title {
-            font-size: 1.6rem !important;
+        /* ======================================= */
+        /* ✨ 以下為修正「站名打直」的核心優化 CSS */
+        /* ======================================= */
+
+        /* 1. 讓大字版的資料列允許換行，避免元件橫向推擠 */
+        body.large-text .eta-row {
+            padding: 16px 12px !important;
+            gap: 8px !important;
+            flex-wrap: wrap !important; /* 🔑 允許內部元件換行 */
+            align-items: center;
         }
 
-        /* 微調大字版之後的資料列間距，避免擠壓 */
-        body.large-text .eta-row {
-            padding: 14px 10px !important;
-            gap: 12px !important;
+        /* 2. 放大目的地與站名，並保障其最低寬度，絕不縮成垂直一線 */
+        body.large-text .route-dest {
+            font-size: 1.35rem !important;
+            font-weight: bold;
+            flex: 1 1 180px !important; /* 🔑 限制最低彈性寬度為 180px，不夠寬就自動將後方元件推下去 */
+            word-break: break-word !important;
+            white-space: normal !important;
+        }
+
+        /* 3. 讓時間標籤群在大字模式下自動排到第二行，給長者最充裕、舒適的閱讀空間 */
+        body.large-text .eta-times {
+            flex: 1 0 100% !important; /* 🔑 強制將時間區塊獨立帶到下一行 */
+            display: flex;
+            gap: 8px !important;
+            justify-content: flex-start; /* 靠左對齊依序排開 */
+            margin-top: 6px;            /* 與上方站名保留一點舒適的間距 */
         }
     </style>
 </head>
