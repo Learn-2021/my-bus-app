@@ -9,12 +9,18 @@
             --kmb-red: #e60012;
             --lrt-purple: #501d5a;
             --mtr-blue: #009bda;
+            --k65-dark-blue: #0054a6; /* 1. 先在 root 定義 K65 的深藍色變數 */
             --bg-color: #f5f5f7;
             --card-bg: #ffffff;
             --text-main: #333333;
             --text-muted: #666666;
             --sub-bg: #f2f2f7;
             --border-color: #eeeeee;
+        }
+
+        /* 2. 再在這裡套用它 */
+        .k65-bg { 
+            background-color: var(--k65-dark-blue); 
         }
 
         /* 🌙 深色模式自定義顏色 */
@@ -139,6 +145,20 @@
             font-weight: bold;
             color: #0071e3;
             font-family: monospace;
+            margin-top: 2px;
+            margin-bottom: 3px;
+        }
+
+        .lendar-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .term-text {
+            font-size: 12px;
+            color: #ff9500;
+            font-weight: bold;
             margin-top: 2px;
         }
 
@@ -302,6 +322,7 @@
 </head>
 <body>
 
+    <!-- 🌤️ 天氣與實時時鐘頂欄 -->
     <div class="weather-bar">
         <div class="weather-left">
             <img class="weather-icon" id="weather-img" src="" alt="weather icon">
@@ -332,6 +353,7 @@
                 <label><input type="checkbox" id="chk-wind" checked onchange="applyWeatherSettings()"> 顯示實時風速</label>
                 <label><input type="checkbox" id="chk-forecast" checked onchange="applyWeatherSettings()"> 顯示未來兩天預報</label>
                 
+                <!-- 主題設定區 -->
                 <div class="theme-section">
                     <b>🎨 介面主題：</b>
                     <label><input type="radio" name="theme-choice" id="theme-light" checked onchange="applyThemeSettings()"> ☀️ 淺色模式</label>
@@ -341,24 +363,37 @@
             <div class="live-clock">
                 <div id="live-date">--年--月--日 (週-)</div>
                 <div class="clock-time" id="live-time">00:00:00</div>
+                <!-- 🆕 新增：農曆年月日時 與 節氣預報顯示行 -->
+                <div class="lendar-text" id="live-lunar">農曆：--年 --月-- --時</div>
+                <div class="term-text" id="next-term">🌱 下一節氣：-- (--月--日 / 農曆--)</div>
             </div>
         </div>
     </div>
 
+    <!-- 面板主要網格 -->
     <div class="dashboard-grid">
+        <!-- 1. 綜合巴士面板 -->
         <div class="panel-card" id="bus-card">
             <div class="panel-title bus-title">🚌 綜合巴士到站預報</div>
             
+            <!-- 第一格：九巴 68E, 68F -->
             <div class="bus-section-title kmb" id="kmb-sec-title-1">🔴 九巴班次</div>
             <div id="kmb-container-1">正在載入...</div>
             
+            <!-- 第二格：港鐵巴士 K68, K65 -->
             <div class="bus-section-title mtrb" id="mtrb-sec-title">🔵 港鐵巴士班次</div>
             <div id="mtrb-container">正在載入...</div>
             
+            <!-- 第三格：九巴 268X, 276P, 68X -->
             <div class="bus-section-title kmb" id="kmb-sec-title-2">🔴 九巴班次</div>
             <div id="kmb-container-2">正在載入...</div>
+            
+            <!-- 第四格：九巴 268X, 276P, 68X -->
+            <div class="bus-section-title kmb" id="kmb-sec-title-3">🔴 九巴班次</div>
+            <div id="kmb-container-3">正在載入...</div>
         </div>
 
+        <!-- 2. 輕鐵面板 -->
         <div class="panel-card" id="lrt-card">
             <div class="panel-title lrt-title">🔮 輕鐵下班車</div>
             <div id="lrt-container">正在載入...</div>
@@ -372,7 +407,8 @@
             enabled: true, 
             stops: [
                 { stop_id: "B896D9459B2C84FA", stop_name: "御豪山莊", filter_routes: ["68E", "68F"] },
-                { stop_id: "70FEB409760C77EE", stop_name: "元朗公園站(大馬路)", filter_routes: ["276P", "68X", "268X"] }
+                { stop_id: "70FEB409760C77EE", stop_name: "元朗公園站(大馬路)", filter_routes: ["276P", "68X", "268X"] },
+                { stop_id: "6A435795576D92E8", stop_name: "朗庭園", filter_routes: ["B1", "68X", "268X","268C",] }
             ]
         },
         lrt: { enabled: true, station_id: "560" },
@@ -381,20 +417,123 @@
             stops: [
                 { route: "K68", stop_id: "K68-D020", stop_name: "御豪山莊" },
                 { route: "K65", stop_id: "K65-D150", stop_name: "水邊圍站" },
-                { route: "K65", stop_id: "K65-U010", stop_name: "元朗站" },
-                { route: "K68", stop_id: "K68-D080", stop_name: "朗屏站" },
-                { route: "K68", stop_id: "K68-D090", stop_name: "元朗盲人安老院" }
+                { route: "K68", stop_id: "K68-U020", stop_name: "元朗盲人安老院" },
+                { route: "K68", stop_id: "K68-U010", stop_name: "朗屏站(屏昌徑)" },
+                { route: "K65", stop_id: "K65-U010", stop_name: "元朗站" }
             ]
         },
         refresh_seconds: 30 
     };
 
+    // ==================== 🌙 專屬時鐘與內置農曆節氣引擎 ====================
     function initClock() {
         const weeks = ['日', '一', '二', '三', '四', '五', '六'];
+        
+        // 核心對照數據表（覆蓋2025底至2027年，確保極致精準）
+        const lunarMonths = [
+            { gStart: '2025-12-20', lYear: 2025, name: '十一月' },
+            { gStart: '2026-01-19', lYear: 2025, name: '臘月' },
+            { gStart: '2026-02-17', lYear: 2026, name: '正月' },
+            { gStart: '2026-03-19', lYear: 2026, name: '二月' },
+            { gStart: '2026-04-18', lYear: 2026, name: '三月' },
+            { gStart: '2026-05-17', lYear: 2026, name: '四月' },
+            { gStart: '2026-06-16', lYear: 2026, name: '五月' },
+            { gStart: '2026-07-15', lYear: 2026, name: '六月' },
+            { gStart: '2026-08-14', lYear: 2026, name: '閏六月' },
+            { gStart: '2026-09-12', lYear: 2026, name: '七月' },
+            { gStart: '2026-10-11', lYear: 2026, name: '八月' },
+            { gStart: '2026-11-10', lYear: 2026, name: '九月' },
+            { gStart: '2026-12-09', lYear: 2026, name: '十月' },
+            { gStart: '2027-01-08', lYear: 2026, name: '十一月' },
+            { gStart: '2027-02-06', lYear: 2026, name: '十二月' },
+            { gStart: '2027-03-08', lYear: 2027, name: '正月' }
+        ];
+        
+        const lunarDays = [
+            "", "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
+            "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
+            "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
+        ];
+
+        const solarTerms = [
+            { name: "小寒", dateStr: "2026-01-05" }, { name: "大寒", dateStr: "2026-01-20" },
+            { name: "立春", dateStr: "2026-02-04" }, { name: "雨水", dateStr: "2026-02-19" },
+            { name: "驚蟄", dateStr: "2026-03-05" }, { name: "春分", dateStr: "2026-03-20" },
+            { name: "清明", dateStr: "2026-04-05" }, { name: "穀雨", dateStr: "2026-04-20" },
+            { name: "立夏", dateStr: "2026-05-05" }, { name: "小滿", dateStr: "2026-05-21" },
+            { name: "芒種", dateStr: "2026-06-05" }, { name: "夏至", dateStr: "2026-06-21" },
+            { name: "小暑", dateStr: "2026-07-07" }, { name: "大暑", dateStr: "2026-07-23" },
+            { name: "立秋", dateStr: "2026-08-07" }, { name: "處暑", dateStr: "2026-08-23" },
+            { name: "白露", dateStr: "2026-09-07" }, { name: "秋分", dateStr: "2026-09-23" },
+            { name: "寒露", dateStr: "2026-10-08" }, { name: "霜降", dateStr: "2026-10-23" },
+            { name: "立冬", dateStr: "2026-11-07" }, { name: "小雪", dateStr: "2026-11-22" },
+            { name: "大雪", dateStr: "2026-12-07" }, { name: "冬至", dateStr: "2026-12-22" },
+            { name: "小寒", dateStr: "2027-01-05" }, { name: "大寒", dateStr: "2027-01-20" },
+            { name: "立春", dateStr: "2027-02-04" }, { name: "雨水", dateStr: "2027-02-18" }
+        ];
+
+        function getGanZhiYear(yr) {
+            if (yr === 2025) return "乙巳年 (蛇年)";
+            if (yr === 2026) return "丙午年 (馬年)";
+            if (yr === 2027) return "丁未年 (羊年)";
+            return yr + "年";
+        }
+
+        function getLunarHourName(h) {
+            const hours = ["子時", "丑時", "寅時", "卯時", "辰時", "巳時", "午時", "未時", "申時", "酉時", "戌時", "亥時"];
+            if (h === 23 || h < 1) return hours[0];
+            return hours[Math.floor((h + 1) / 2)];
+        }
+
+        function calculateLunarDetails(dObj) {
+            const targetMidnight = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate()).getTime();
+            let matchedIdx = -1;
+            for (let i = 0; i < lunarMonths.length; i++) {
+                if (targetMidnight >= new Date(lunarMonths[i].gStart).getTime()) {
+                    matchedIdx = i;
+                } else {
+                    break;
+                }
+            }
+            if (matchedIdx === -1) return null;
+            const diffDays = Math.floor((targetMidnight - new Date(lunarMonths[matchedIdx].gStart).getTime()) / 86400000) + 1;
+            return {
+                yearText: getGanZhiYear(lunarMonths[matchedIdx].lYear),
+                monthText: lunarMonths[matchedIdx].name,
+                dayText: lunarDays[diffDays] || `初${diffDays}`
+            };
+        }
+
+        // 定時刷新迴圈 (每秒一抽)
         setInterval(() => {
             const now = new Date();
+            
+            // 1. 新曆日期與時間
             document.getElementById('live-date').innerText = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 (週${weeks[now.getDay()]})`;
             document.getElementById('live-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+            
+            // 2. 計算與顯示農曆（年月日時）
+            const lunarInfo = calculateLunarDetails(now);
+            if (lunarInfo) {
+                const hourText = getLunarHourName(now.getHours());
+                document.getElementById('live-lunar').innerText = `農曆：${lunarInfo.yearText} ${lunarInfo.monthText}${lunarInfo.dayText} ${hourText}`;
+            }
+            
+            // 3. 計算與追蹤下一個即將到來的二十四節氣
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            let nextTermObj = null;
+            for (let i = 0; i < solarTerms.length; i++) {
+                if (new Date(solarTerms[i].dateStr).getTime() > todayMidnight) {
+                    nextTermObj = solarTerms[i];
+                    break;
+                }
+            }
+            if (nextTermObj) {
+                const termDate = new Date(nextTermObj.dateStr);
+                const termLunar = calculateLunarDetails(termDate);
+                const termLunarStr = termLunar ? `${termLunar.monthText}${termLunar.dayText}` : '--';
+                document.getElementById('next-term').innerText = `🌱 下一節氣：${nextTermObj.name} (${termDate.getMonth() + 1}月${termDate.getDate()}日 / 農曆${termLunarStr})`;
+            }
         }, 1000);
     }
 
@@ -427,7 +566,6 @@
     }
 
     function loadSavedSettings() {
-        // 載入天氣欄位顯示
         const savedWeather = localStorage.getItem('weather_display_config');
         if (savedWeather) {
             const config = JSON.parse(savedWeather);
@@ -438,7 +576,6 @@
         }
         applyWeatherSettings();
 
-        // 載入主題
         const savedTheme = localStorage.getItem('panel_theme') || 'light';
         if (savedTheme === 'dark') {
             document.getElementById('theme-dark').checked = true;
@@ -481,7 +618,6 @@
             }
             document.getElementById('item-rain').innerText = `地區降雨量: ${rainVal}`;
 
-            // 精准處理紫外線指數問題
             let uvVal = "0 (低)";
             if (data.uvIndex && data.uvIndex.data && data.uvIndex.data[0]) {
                 const v = data.uvIndex.data[0].value;
@@ -542,11 +678,9 @@
         document.getElementById('bus-card').style.display = (!kmbOn && !mtrbOn) ? 'none' : 'block';
     }
 
-    // 重構九巴處理邏輯，完美適應分層順序渲染
     async function updateKMB() {
         const kmbEnabled = CONFIG.kmb.enabled && CONFIG.kmb.stops && CONFIG.kmb.stops.length > 0;
         
-        // 全局隱顯設定控制
         for (let i = 0; i < 2; i++) {
             const container = document.getElementById(`kmb-container-${i+1}`);
             const title = document.getElementById(`kmb-sec-title-${i+1}`);
@@ -557,7 +691,6 @@
         
         if (!kmbEnabled) { checkBusCardVisibility(); return; }
         
-        // 遍歷指定的兩個九巴站點，分別寫入各自對應的 HTML 容器中
         for (let i = 0; i < CONFIG.kmb.stops.length; i++) {
             const stop = CONFIG.kmb.stops[i];
             const container = document.getElementById(`kmb-container-${i+1}`);
@@ -628,42 +761,53 @@
     }
 
     async function updateMTRBus() {
-        const container = document.getElementById('mtrb-container');
-        const title = document.getElementById('mtrb-sec-title');
-        if (!CONFIG.mtr_bus.enabled || CONFIG.mtr_bus.stops.length === 0) { container.style.display = title.style.display = 'none'; checkBusCardVisibility(); return; }
-        try {
-            const promises = CONFIG.mtr_bus.stops.map(async (target) => {
-                const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ language: 'zh', routeName: target.route })
-                });
-                const json = await res.json();
-                
-                const hasBusStopData = json && json.busStop;
-                const matchedStop = hasBusStopData ? json.busStop.find(s => s.busStopId === target.stop_id) : null;
-                
-                if (matchedStop && matchedStop.bus && matchedStop.bus.length > 0) {
-                    const etas = matchedStop.bus.map(b => {
-                        const t = b.arrivalTimeText || b.departureTimeText || '---';
-                        return (t === '0 分鐘' || t === '即將抵達') ? '即將開出' : t;
-                    });
-                    return `<div class="eta-row">
-                        <div class="route-badge mtrb-bg">${target.route}</div>
-                        <div class="route-dest">${target.stop_name}</div>
-                        <div class="eta-times">${etas.slice(0, 3).map((t, idx) => `<span class="time-tag ${idx===0?'highlight':''}">${t}</span>`).join('')}</div>
-                    </div>`;
-                } else {
-                    return `<div class="eta-row" style="opacity: 0.6;">
-                        <div class="route-badge mtrb-bg" style="background: #999;">${target.route}</div>
-                        <div class="route-dest">${target.stop_name}</div>
-                        <div class="eta-times"><span class="time-tag">服務已結束 / 暫無班次</span></div>
-                    </div>`;
-                }
-            });
-            container.innerHTML = (await Promise.all(promises)).join('');
-        } catch (e) { container.innerHTML = `<div class="error-msg">❌ 港鐵巴士載入失敗</div>`; }
+    const container = document.getElementById('mtrb-container');
+    const title = document.getElementById('mtrb-sec-title');
+    if (!CONFIG.mtr_bus.enabled || CONFIG.mtr_bus.stops.length === 0) { 
+        container.style.display = title.style.display = 'none'; 
+        checkBusCardVisibility(); 
+        return; 
     }
+    try {
+        const promises = CONFIG.mtr_bus.stops.map(async (target) => {
+            const res = await fetch('https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: 'zh', routeName: target.route })
+            });
+            const json = await res.json();
+            
+            const hasBusStopData = json && json.busStop;
+            const matchedStop = hasBusStopData ? json.busStop.find(s => s.busStopId === target.stop_id) : null;
+            
+            // 💡 核心修改 1：在這裡動態判斷標籤顏色類別
+            const badgeClass = target.route === 'K65' ? 'k65-bg' : 'mtrb-bg';
+            
+            if (matchedStop && matchedStop.bus && matchedStop.bus.length > 0) {
+                const etas = matchedStop.bus.map(b => {
+                    const t = b.arrivalTimeText || b.departureTimeText || '---';
+                    return (t === '0 分鐘' || t === '即將抵達') ? '即將開出' : t;
+                });
+                
+                // 💡 核心修改 2：把原本的 mtrb-bg 改成 ${badgeClass}
+                return `<div class="eta-row">
+                    <div class="route-badge ${badgeClass}">${target.route}</div>
+                    <div class="route-dest">${target.stop_name}</div>
+                    <div class="eta-times">${etas.slice(0, 3).map((t, idx) => `<span class="time-tag ${idx===0?'highlight':''}">${t}</span>`).join('')}</div>
+                </div>`;
+            } else {
+                return `<div class="eta-row" style="opacity: 0.6;">
+                    <div class="route-badge mtrb-bg" style="background: #999;">${target.route}</div>
+                    <div class="route-dest">${target.stop_name}</div>
+                    <div class="eta-times"><span class="time-tag">服務已結束 / 暫無班次</span></div>
+                </div>`;
+            }
+        });
+        container.innerHTML = (await Promise.all(promises)).join('');
+    } catch (e) { 
+        container.innerHTML = `<div class="error-msg">❌ 港鐵巴士載入失敗</div>`; 
+    }
+}
 
     function updateAllETA() {
         updateKMB();
