@@ -318,11 +318,48 @@
             .live-clock { text-align: left; }
             .settings-panel { right: auto; left: 20px; }
         }
+
+        /* 👵 大字長者模式樣式設定 */
+        body.large-text {
+            font-size: 1.25rem; /* 全局基礎字體放大 25% */
+        }
+
+        /* 放大各個交通工具的路線標籤 */
+        body.large-text .route-badge {
+            font-size: 1.45rem !important;
+            padding: 6px 12px !important;
+            min-width: 70px !important;
+            text-align: center;
+        }
+
+        /* 放大目的地字體 */
+        body.large-text .route-dest {
+            font-size: 1.35rem !important;
+            font-weight: bold;
+        }
+
+        /* 放大時間標籤 */
+        body.large-text .time-tag {
+            font-size: 1.3rem !important;
+            padding: 6px 12px !important;
+        }
+
+        /* 放大區域標題（如：港鐵巴士、九巴預報等） */
+        body.large-text h2, 
+        body.large-text .section-title,
+        body.large-text #mtrb-sec-title {
+            font-size: 1.6rem !important;
+        }
+
+        /* 微調大字版之後的資料列間距，避免擠壓 */
+        body.large-text .eta-row {
+            padding: 14px 10px !important;
+            gap: 12px !important;
+        }
     </style>
 </head>
 <body>
 
-    <!-- 🌤️ 天氣與實時時鐘頂欄 -->
     <div class="weather-bar">
         <div class="weather-left">
             <img class="weather-icon" id="weather-img" src="" alt="weather icon">
@@ -353,7 +390,17 @@
                 <label><input type="checkbox" id="chk-wind" checked onchange="applyWeatherSettings()"> 顯示實時風速</label>
                 <label><input type="checkbox" id="chk-forecast" checked onchange="applyWeatherSettings()"> 顯示未來兩天預報</label>
                 
-                <!-- 主題設定區 -->
+                <label><input type="checkbox" id="chk-lunar" onchange="applyWeatherSettings()"> 顯示農曆與干支</label>
+                <label><input type="checkbox" id="chk-wuxing" onchange="applyWeatherSettings()"> 顯示八字五行</label>
+                <label><input type="checkbox" id="chk-term" onchange="applyWeatherSettings()"> 顯示二十四節氣</label>
+                
+                <div class="setting-item" style="margin: 10px 0; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="toggle-large-text" style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="toggle-large-text" style="font-size: 16px; cursor: pointer; user-select: none;">
+                        👵 大字長者模式
+                    </label>
+                </div>
+
                 <div class="theme-section">
                     <b>🎨 介面主題：</b>
                     <label><input type="radio" name="theme-choice" id="theme-light" checked onchange="applyThemeSettings()"> ☀️ 淺色模式</label>
@@ -363,37 +410,30 @@
             <div class="live-clock">
                 <div id="live-date">--年--月--日 (週-)</div>
                 <div class="clock-time" id="live-time">00:00:00</div>
-                <!-- 🆕 新增：農曆年月日時 與 節氣預報顯示行 -->
-                <div class="lendar-text" id="live-lunar">農曆：--年 --月-- --時</div>
-                <div class="term-text" id="next-term">🌱 下一節氣：-- (--月--日 / 農曆--)</div>
+                <div class="lendar-text" id="item-lunar" style="display: none;">農曆：--年 --月-- --時</div>
+                <div id="item-wuxing" style="font-size: 11px; opacity: 0.85; color: #ff9500; font-weight: bold; margin-top: 2px; display: none;">五行：--</div>
+                <div class="term-text" id="item-term" style="display: none;">🌱 下一節氣：-- (--月--日 / 農曆--)</div>
             </div>
         </div>
     </div>
 
-    <!-- 面板主要網格 -->
     <div class="dashboard-grid">
-        <!-- 1. 綜合巴士面板 -->
         <div class="panel-card" id="bus-card">
             <div class="panel-title bus-title">🚌 綜合巴士到站預報</div>
             
-            <!-- 第一格：九巴 68E, 68F -->
             <div class="bus-section-title kmb" id="kmb-sec-title-1">🔴 九巴班次</div>
             <div id="kmb-container-1">正在載入...</div>
             
-            <!-- 第二格：港鐵巴士 K68, K65 -->
             <div class="bus-section-title mtrb" id="mtrb-sec-title">🔵 港鐵巴士班次</div>
             <div id="mtrb-container">正在載入...</div>
             
-            <!-- 第三格：九巴 268X, 276P, 68X -->
             <div class="bus-section-title kmb" id="kmb-sec-title-2">🔴 九巴班次</div>
             <div id="kmb-container-2">正在載入...</div>
             
-            <!-- 第四格：九巴 268X, 276P, 68X -->
             <div class="bus-section-title kmb" id="kmb-sec-title-3">🔴 九巴班次</div>
             <div id="kmb-container-3">正在載入...</div>
         </div>
 
-        <!-- 2. 輕鐵面板 -->
         <div class="panel-card" id="lrt-card">
             <div class="panel-title lrt-title">🔮 輕鐵下班車</div>
             <div id="lrt-container">正在載入...</div>
@@ -424,6 +464,30 @@
         },
         refresh_seconds: 30 
     };
+
+    document.addEventListener('DOMContentLoaded', () => {
+    const largeTextToggle = document.getElementById('toggle-large-text');
+
+    // 1. 頁面載入時：檢查先前是否有開啟過「大字模式」
+    if (localStorage.getItem('large-text-mode') === 'enabled') {
+        document.body.classList.add('large-text');
+        if (largeTextToggle) largeTextToggle.checked = true;
+    }
+
+    // 2. 監聽勾選方塊：當長者點擊切換時
+    if (largeTextToggle) {
+        largeTextToggle.addEventListener('change', function() {
+            if (this.checked) {
+                document.body.classList.add('large-text');
+                localStorage.setItem('large-text-mode', 'enabled'); // 記住設定
+            } else {
+                document.body.classList.remove('large-text');
+                localStorage.setItem('large-text-mode', 'disabled'); // 取消記住
+            }
+        });
+    }
+});
+
 
     // ==================== 🌙 專屬時鐘與內置農曆節氣引擎 ====================
     function initClock() {
@@ -456,6 +520,7 @@
         ];
 
         const solarTerms = [
+            // 2026 年
             { name: "小寒", dateStr: "2026-01-05" }, { name: "大寒", dateStr: "2026-01-20" },
             { name: "立春", dateStr: "2026-02-04" }, { name: "雨水", dateStr: "2026-02-19" },
             { name: "驚蟄", dateStr: "2026-03-05" }, { name: "春分", dateStr: "2026-03-20" },
@@ -468,21 +533,160 @@
             { name: "寒露", dateStr: "2026-10-08" }, { name: "霜降", dateStr: "2026-10-23" },
             { name: "立冬", dateStr: "2026-11-07" }, { name: "小雪", dateStr: "2026-11-22" },
             { name: "大雪", dateStr: "2026-12-07" }, { name: "冬至", dateStr: "2026-12-22" },
+
+            // 2027 年
             { name: "小寒", dateStr: "2027-01-05" }, { name: "大寒", dateStr: "2027-01-20" },
-            { name: "立春", dateStr: "2027-02-04" }, { name: "雨水", dateStr: "2027-02-18" }
+            { name: "立春", dateStr: "2027-02-04" }, { name: "雨水", dateStr: "2027-02-18" },
+            { name: "驚蟄", dateStr: "2027-03-06" }, { name: "春分", dateStr: "2027-03-21" },
+            { name: "清明", dateStr: "2027-04-05" }, { name: "穀雨", dateStr: "2027-04-20" },
+            { name: "立夏", dateStr: "2027-05-06" }, { name: "小滿", dateStr: "2027-05-21" },
+            { name: "芒種", dateStr: "2027-06-06" }, { name: "夏至", dateStr: "2027-06-21" },
+            { name: "小暑", dateStr: "2027-07-07" }, { name: "大暑", dateStr: "2027-07-23" },
+            { name: "立秋", dateStr: "2027-08-08" }, { name: "處暑", dateStr: "2027-08-23" },
+            { name: "白露", dateStr: "2027-09-08" }, { name: "秋分", dateStr: "2027-09-23" },
+            { name: "寒露", dateStr: "2027-10-08" }, { name: "霜降", dateStr: "2027-10-23" },
+            { name: "立冬", dateStr: "2027-11-07" }, { name: "小雪", dateStr: "2027-11-22" },
+            { name: "大雪", dateStr: "2027-12-07" }, { name: "冬至", dateStr: "2027-12-22" },
+
+            // 2028 年 (閏年)
+            { name: "小寒", dateStr: "2028-01-06" }, { name: "大寒", dateStr: "2028-01-20" },
+            { name: "立春", dateStr: "2028-02-04" }, { name: "雨水", dateStr: "2028-02-19" },
+            { name: "驚蟄", dateStr: "2028-03-05" }, { name: "春分", dateStr: "2028-03-20" },
+            { name: "清明", dateStr: "2028-04-04" }, { name: "穀雨", dateStr: "2028-04-19" },
+            { name: "立夏", dateStr: "2028-05-05" }, { name: "小滿", dateStr: "2028-05-20" },
+            { name: "芒種", dateStr: "2028-06-05" }, { name: "夏至", dateStr: "2028-06-21" },
+            { name: "小暑", dateStr: "2028-07-06" }, { name: "大暑", dateStr: "2028-07-22" },
+            { name: "立秋", dateStr: "2028-08-07" }, { name: "處暑", dateStr: "2028-08-22" },
+            { name: "白露", dateStr: "2028-09-07" }, { name: "秋分", dateStr: "2028-09-22" },
+            { name: "寒露", dateStr: "2028-10-08" }, { name: "霜降", dateStr: "2028-10-23" },
+            { name: "立冬", dateStr: "2028-11-07" }, { name: "小雪", dateStr: "2028-11-22" },
+            { name: "大雪", dateStr: "2028-12-06" }, { name: "冬至", dateStr: "2028-12-21" },
+
+            // 2029 年
+            { name: "小寒", dateStr: "2029-01-05" }, { name: "大寒", dateStr: "2029-01-20" },
+            { name: "立春", dateStr: "2029-02-03" }, { name: "雨水", dateStr: "2029-02-18" },
+            { name: "驚蟄", dateStr: "2029-03-05" }, { name: "春分", dateStr: "2029-03-20" },
+            { name: "清明", dateStr: "2029-04-04" }, { name: "穀雨", dateStr: "2029-04-20" },
+            { name: "立夏", dateStr: "2029-05-05" }, { name: "小滿", dateStr: "2029-05-21" },
+            { name: "芒種", dateStr: "2029-06-05" }, { name: "夏至", dateStr: "2029-06-21" },
+            { name: "小暑", dateStr: "2029-07-07" }, { name: "大暑", dateStr: "2029-07-22" },
+            { name: "立秋", dateStr: "2029-08-07" }, { name: "處暑", dateStr: "2029-08-23" },
+            { name: "白露", dateStr: "2029-09-07" }, { name: "秋分", dateStr: "2029-09-23" },
+            { name: "寒露", dateStr: "2029-10-08" }, { name: "霜降", dateStr: "2029-10-23" },
+            { name: "立冬", dateStr: "2029-11-07" }, { name: "小雪", dateStr: "2029-11-22" },
+            { name: "大雪", dateStr: "2029-12-07" }, { name: "冬至", dateStr: "2029-12-21" },
+
+            // 2030 年
+            { name: "小寒", dateStr: "2030-01-05" }, { name: "大寒", dateStr: "2030-01-20" },
+            { name: "立春", dateStr: "2030-02-04" }, { name: "雨水", dateStr: "2030-02-18" },
+            { name: "驚蟄", dateStr: "2030-03-05" }, { name: "春分", dateStr: "2030-03-20" },
+            { name: "清明", dateStr: "2030-04-05" }, { name: "穀雨", dateStr: "2030-04-20" },
+            { name: "立夏", dateStr: "2030-05-05" }, { name: "小滿", dateStr: "2030-05-21" },
+            { name: "芒種", dateStr: "2030-06-05" }, { name: "夏至", dateStr: "2030-06-21" },
+            { name: "小暑", dateStr: "2030-07-07" }, { name: "大暑", dateStr: "2030-07-23" },
+            { name: "立秋", dateStr: "2030-08-07" }, { name: "處暑", dateStr: "2030-08-23" },
+            { name: "白露", dateStr: "2030-09-07" }, { name: "秋分", dateStr: "2030-09-23" },
+            { name: "寒露", dateStr: "2030-10-08" }, { name: "霜降", dateStr: "2030-10-23" },
+            { name: "立冬", dateStr: "2030-11-07" }, { name: "小雪", dateStr: "2030-11-22" },
+            { name: "大雪", dateStr: "2030-12-07" }, { name: "冬至", dateStr: "2030-12-22" },
+
+            // 2031 年 (預留跨年緩衝)
+            { name: "小寒", dateStr: "2031-01-05" }, { name: "大寒", dateStr: "2031-01-20" },
+            { name: "立春", dateStr: "2031-02-04" }, { name: "雨水", dateStr: "2031-02-19" }
         ];
 
         function getGanZhiYear(yr) {
-            if (yr === 2025) return "乙巳年 (蛇年)";
-            if (yr === 2026) return "丙午年 (馬年)";
-            if (yr === 2027) return "丁未年 (羊年)";
-            return yr + "年";
+            const stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+            const branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+            const zodiacs = ["鼠", "牛", "虎", "兔", "龍", "蛇", "馬", "羊", "猴", "雞", "狗", "豬"];
+            if (yr < 4) return yr + "年"; 
+            const stemIdx = (yr - 4) % 10;
+            const branchIdx = (yr - 4) % 12;
+            return `${stems[stemIdx]}${branches[branchIdx]}年 (${zodiacs[branchIdx]}年)`;
         }
 
-        function getLunarHourName(h) {
-            const hours = ["子時", "丑時", "寅時", "卯時", "辰時", "巳時", "午時", "未時", "申時", "酉時", "戌時", "亥時"];
-            if (h === 23 || h < 1) return hours[0];
-            return hours[Math.floor((h + 1) / 2)];
+        // 🆕 升級：全自動精確時辰干支計算（精確對齊五鼠遁元公式）
+        function getLunarHourName(dObj) {
+            const stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+            const branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+            
+            const targetMidnight = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate()).getTime();
+            const baseDate = new Date(2026, 0, 1).getTime(); 
+            const diffDays = Math.round((targetMidnight - baseDate) / 86400000);
+            let dayStemIdx = (5 + diffDays) % 10;
+            if (dayStemIdx < 0) dayStemIdx += 10;
+            
+            // 傳統曆法：23:00 之後算作子初換日
+            let h = dObj.getHours();
+            if (h >= 23) {
+                dayStemIdx = (dayStemIdx + 1) % 10;
+            }
+            
+            let branchIdx = (h === 23 || h < 1) ? 0 : Math.floor((h + 1) / 2);
+            const ziHourStemIdx = (dayStemIdx % 5) * 2;
+            const hourStemIdx = (ziHourStemIdx + branchIdx) % 10;
+            
+            return stems[hourStemIdx] + branches[branchIdx] + "時";
+        }
+
+        // 🆕 新增：五行屬性自動對照轉換器
+        function getGanZhiWuXing(ganZhiStr) {
+            const wxMap = {
+                '甲':'木', '乙':'木', '丙':'火', '丁':'火', '戊':'土', '己':'土', '庚':'金', '辛':'金', '壬':'水', '癸':'水',
+                '寅':'木', '卯':'木', '巳':'火', '午':'火', '申':'金', '酉':'金', '亥':'水', '子':'水',
+                '辰':'土', '戌':'土', '丑':'土', '未':'土'
+            };
+            if (!ganZhiStr || ganZhiStr.length < 2) return '--';
+            const stemWuXing = wxMap[ganZhiStr[0]] || '?';
+            const branchWuXing = wxMap[ganZhiStr[1]] || '?';
+            return stemWuXing + branchWuXing;
+        }
+
+        // 全自動干支日計算
+        function getGanZhiDay(dObj) {
+            const stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+            const branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+            const targetMidnight = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate()).getTime();
+            const baseDate = new Date(2026, 0, 1).getTime(); 
+            const diffDays = Math.round((targetMidnight - baseDate) / 86400000);
+            let stemIdx = (5 + diffDays) % 10;
+            let branchIdx = (3 + diffDays) % 12;
+            if (stemIdx < 0) stemIdx += 10;
+            if (branchIdx < 0) branchIdx += 12;
+            return stems[stemIdx] + branches[branchIdx] + "日";
+        }
+
+        // 結合節氣與「五虎遁」公式的干支月計算
+        function getGanZhiMonth(dObj) {
+            const stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+            const monthTermMap = {
+                "小寒": { branch: "丑", offset: 11 }, "立春": { branch: "寅", offset: 0 },
+                "驚蟄": { branch: "卯", offset: 1 }, "清明": { branch: "辰", offset: 2 },
+                "立夏": { branch: "巳", offset: 3 }, "芒種": { branch: "午", offset: 4 },
+                "小暑": { branch: "未", offset: 5 }, "立秋": { branch: "申", offset: 6 },
+                "白露": { branch: "酉", offset: 7 }, "寒露": { branch: "戌", offset: 8 },
+                "立冬": { branch: "亥", offset: 9 }, "大雪": { branch: "子", offset: 10 }
+            };
+
+            const targetTime = new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate()).getTime();
+            let lastMonthTerm = null;
+            let lastLiChunYear = 2025;
+            
+            for (let i = 0; i < solarTerms.length; i++) {
+                const termTime = new Date(solarTerms[i].dateStr).getTime();
+                if (targetTime >= termTime) {
+                    if (monthTermMap[solarTerms[i].name]) lastMonthTerm = solarTerms[i];
+                    if (solarTerms[i].name === "立春") lastLiChunYear = new Date(solarTerms[i].dateStr).getFullYear();
+                } else {
+                    break;
+                }
+            }
+            if (!lastMonthTerm) return "未知月";
+            const yearStemIdx = (lastLiChunYear - 4) % 10;
+            const termInfo = monthTermMap[lastMonthTerm.name];
+            const startMonthStemIdx = (yearStemIdx % 5) * 2 + 2;
+            const monthStemIdx = (startMonthStemIdx + termInfo.offset) % 10;
+            return stems[monthStemIdx] + termInfo.branch + "月";
         }
 
         function calculateLunarDetails(dObj) {
@@ -497,10 +701,13 @@
             }
             if (matchedIdx === -1) return null;
             const diffDays = Math.floor((targetMidnight - new Date(lunarMonths[matchedIdx].gStart).getTime()) / 86400000) + 1;
+            
             return {
                 yearText: getGanZhiYear(lunarMonths[matchedIdx].lYear),
                 monthText: lunarMonths[matchedIdx].name,
-                dayText: lunarDays[diffDays] || `初${diffDays}`
+                dayText: lunarDays[diffDays] || `初${diffDays}`,
+                ganZhiMonth: getGanZhiMonth(dObj),
+                ganZhiDay: getGanZhiDay(dObj)
             };
         }
 
@@ -512,14 +719,23 @@
             document.getElementById('live-date').innerText = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 (週${weeks[now.getDay()]})`;
             document.getElementById('live-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
             
-            // 2. 計算與顯示農曆（年月日時）
+            // 2. 計算與顯示農曆與五行（精確格式對齊展示圖）
             const lunarInfo = calculateLunarDetails(now);
             if (lunarInfo) {
-                const hourText = getLunarHourName(now.getHours());
-                document.getElementById('live-lunar').innerText = `農曆：${lunarInfo.yearText} ${lunarInfo.monthText}${lunarInfo.dayText} ${hourText}`;
+                const hourText = getLunarHourName(now);
+                
+                // 渲染第一行：農曆與干支
+                document.getElementById('item-lunar').innerText = `農曆：【${lunarInfo.yearText}${lunarInfo.ganZhiMonth}${lunarInfo.ganZhiDay} ${hourText}】 ${lunarInfo.monthText}${lunarInfo.dayText}`;
+                
+                // 渲染第二行：精確八字五行
+                const wxYear = getGanZhiWuXing(lunarInfo.yearText);
+                const wxMonth = getGanZhiWuXing(lunarInfo.ganZhiMonth);
+                const wxDay = getGanZhiWuXing(lunarInfo.ganZhiDay);
+                const wxHour = getGanZhiWuXing(hourText);
+                document.getElementById('item-wuxing').innerText = `五行：【${wxYear}年 / ${wxMonth}月 / ${wxDay}日 / ${wxHour}時】`;
             }
             
-            // 3. 計算與追蹤下一個即將到來的二十四節氣
+            // 3. 計算與追蹤下一個二十四節氣
             const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
             let nextTermObj = null;
             for (let i = 0; i < solarTerms.length; i++) {
@@ -532,7 +748,7 @@
                 const termDate = new Date(nextTermObj.dateStr);
                 const termLunar = calculateLunarDetails(termDate);
                 const termLunarStr = termLunar ? `${termLunar.monthText}${termLunar.dayText}` : '--';
-                document.getElementById('next-term').innerText = `🌱 下一節氣：${nextTermObj.name} (${termDate.getMonth() + 1}月${termDate.getDate()}日 / 農曆${termLunarStr})`;
+                document.getElementById('item-term').innerText = `🌱 下一節氣：${nextTermObj.name} (${termDate.getMonth() + 1}月${termDate.getDate()}日 / 農曆${termLunarStr})`;
             }
         }, 1000);
     }
@@ -543,10 +759,13 @@
     }
 
     function applyWeatherSettings() {
-        const options = ['icon', 'rh', 'rain', 'uv', 'wind', 'forecast'];
+        // 🆕 在這裡加入 'lunar', 'wuxing', 'term' 這三個新選項，讓原本的控制引擎自動去處理顯示或隱藏
+        const options = ['icon', 'rh', 'rain', 'uv', 'wind', 'forecast', 'lunar', 'wuxing', 'term'];
         const savedConfig = {};
         options.forEach(opt => {
-            const isChecked = document.getElementById(`chk-${opt}`).checked;
+            const chk = document.getElementById(`chk-${opt}`);
+            if (!chk) return;
+            const isChecked = chk.checked;
             savedConfig[opt] = isChecked;
             const el = document.getElementById(`item-${opt}`) || document.getElementById('weather-img');
             if (el) el.style.display = isChecked ? (opt === 'icon' ? 'block' : '') : 'none';
@@ -681,7 +900,7 @@
     async function updateKMB() {
         const kmbEnabled = CONFIG.kmb.enabled && CONFIG.kmb.stops && CONFIG.kmb.stops.length > 0;
         
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < 3; i++) {
             const container = document.getElementById(`kmb-container-${i+1}`);
             const title = document.getElementById(`kmb-sec-title-${i+1}`);
             const hasStop = kmbEnabled && i < CONFIG.kmb.stops.length;
@@ -780,7 +999,6 @@
             const hasBusStopData = json && json.busStop;
             const matchedStop = hasBusStopData ? json.busStop.find(s => s.busStopId === target.stop_id) : null;
             
-            // 💡 核心修改 1：在這裡動態判斷標籤顏色類別
             const badgeClass = target.route === 'K65' ? 'k65-bg' : 'mtrb-bg';
             
             if (matchedStop && matchedStop.bus && matchedStop.bus.length > 0) {
@@ -789,7 +1007,6 @@
                     return (t === '0 分鐘' || t === '即將抵達') ? '即將開出' : t;
                 });
                 
-                // 💡 核心修改 2：把原本的 mtrb-bg 改成 ${badgeClass}
                 return `<div class="eta-row">
                     <div class="route-badge ${badgeClass}">${target.route}</div>
                     <div class="route-dest">${target.stop_name}</div>
