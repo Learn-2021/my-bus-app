@@ -322,6 +322,23 @@
             .settings-panel { right: auto; left: 20px; }
         }
 
+        .bus-station-name {
+            display: block;
+            word-break: break-all;
+        }
+
+        /* 輕鐵站名：強制保留一行 */
+        .light-rail-station-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 編組資訊：字詞不拆散 */
+        .train-car-info {
+            white-space: nowrap;
+        }       
+
         /* 👵 大字長者模式樣式設定 */
         body.large-text {
             font-size: 1.25rem; /* 全局基礎字體放大 25% */
