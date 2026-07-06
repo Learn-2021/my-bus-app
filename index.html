@@ -759,13 +759,21 @@
             }
             document.getElementById('item-rain').innerText = `地區降雨量: ${rainVal}`;
 
-            let uvVal = "0 (低)";
-            if (data.uvIndex && data.uvIndex.data && data.uvIndex.data[0]) {
-                const v = data.uvIndex.data[0].value;
-                let d = "低"; if (v >= 3 && v <= 5) d = "中"; else if (v >= 6 && v <= 7) d = "高"; else if (v >= 8) d = "甚高";
+            let uvVal = "暫無數據"; // 👈 建議將預設值改為暫無數據，方便除錯
+            
+            // 🔴 注意：以下全部改為全小寫的 uvindex
+            if (data.uvindex && data.uvindex.data && data.uvindex.data[0]) {
+                const v = data.uvindex.data[0].value; // 🔴 改為全小寫 uvindex
+                let d = "低"; 
+                if (v >= 3 && v <= 5) d = "中"; 
+                else if (v >= 6 && v <= 7) d = "高"; 
+                else if (v >= 8) d = "甚高";
                 uvVal = `${v} (${d})`;
-            } else if (new Date().getHours() >= 19 || new Date().getHours() < 6) { uvVal = "🌙 夜間無紫外線"; }
+            } else if (new Date().getHours() >= 19 || new Date().getHours() < 6) { 
+                uvVal = "🌙 夜間無紫外線"; 
+            }
             document.getElementById('item-uv').innerText = `紫外線指數: ${uvVal}`;
+            
 
             let wTxt = "微風";
             if (data.directionOfWind && data.directionOfWind.value) {
