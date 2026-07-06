@@ -87,7 +87,7 @@
 
         .temperature {
             font-size: 24px;
-            font-weight: 800;
+            font-800: bold;
             color: var(--kmb-red);
         }
 
@@ -318,7 +318,7 @@
             .live-clock { text-align: left; }
             .settings-panel { right: auto; left: 20px; }
 
-            /* 📱 【核心修復】當檢測到是手機版且開啟大字模式時，重塑排版架構 */
+            /* 📱 當檢測到是手機版且開啟大字模式時，重塑排版架構 */
             body.large-text .eta-row {
                 flex-wrap: wrap; /* 允許折行 */
                 padding: 16px 8px !important;
@@ -339,12 +339,35 @@
             }
         }
 
-        /* 👵 大字長者模式基本樣式設定 */
+        /* 👵 【大字長者模式 全面升級樣式控制】 */
         body.large-text {
-            font-size: 1.25rem; /* 全局基礎字體放大 25% */
+            font-size: 1.3rem; /* 全局基礎字體放大 */
         }
 
-        /* 放大各個交通工具的路線標籤 */
+        /* 1. 頂欄天氣資訊與設定按鈕全面放大 */
+        body.large-text .location-name { font-size: 24px !important; }
+        body.large-text .temperature { font-size: 32px !important; }
+        body.large-text #weather-desc { font-size: 20px !important; }
+        body.large-text .weather-sub span { font-size: 16px !important; padding: 4px 10px !important; }
+        body.large-text .forecast-day { font-size: 16px !important; padding: 4px 8px !important; }
+        body.large-text .settings-btn { font-size: 16px !important; padding: 6px 12px !important; }
+        body.large-text .weather-warnings-container span { font-size: 15px !important; }
+
+        /* 2. 實時時鐘、日期、農曆、八字五行與節氣全面放大 */
+        body.large-text #live-date { font-size: 18px !important; }
+        body.large-text .clock-time { font-size: 28px !important; }
+        body.large-text .lendar-text { font-size: 16px !important; }
+        body.large-text #item-wuxing { font-size: 15px !important; }
+        body.large-text .term-text { font-size: 16px !important; }
+
+        /* 3. 各大面板標題與分組小標題全面放大 */
+        body.large-text .panel-title { font-size: 24px !important; padding-bottom: 10px !important; }
+        body.large-text .bus-section-title { font-size: 19px !important; margin: 20px 0 8px 0 !important; }
+        body.large-text .platform-title { font-size: 17px !important; padding: 8px 12px !important; }
+        body.large-text .car-len { font-size: 13px !important; padding: 2px 6px !important; }
+        body.large-text .no-data { font-size: 18px !important; }
+
+        /* 4. 交通工具路線標籤放大 */
         body.large-text .route-badge {
             font-size: 1.45rem !important;
             padding: 6px 12px !important;
@@ -352,23 +375,16 @@
             text-align: center;
         }
 
-        /* 放大目的地字體 */
+        /* 5. 目的地站名放大 */
         body.large-text .route-dest {
             font-size: 1.35rem !important;
             font-weight: bold;
         }
 
-        /* 放大時間標籤 */
+        /* 6. 到站時間標籤放大 */
         body.large-text .time-tag {
             font-size: 1.3rem !important;
             padding: 6px 12px !important;
-        }
-
-        /* 放大區域標題（如：港鐵巴士、九巴預報等） */
-        body.large-text h2, 
-        body.large-text .section-title,
-        body.large-text #mtrb-sec-title {
-            font-size: 1.6rem !important;
         }
 
         /* 微調大字版之後的資料列間距，避免擠壓 */
@@ -380,7 +396,6 @@
 </head>
 <body>
 
-    <!-- 🌤️ 天氣與實時時鐘頂欄 -->
     <div class="weather-bar">
         <div class="weather-left">
             <img class="weather-icon" id="weather-img" src="" alt="weather icon">
@@ -411,7 +426,6 @@
                 <label><input type="checkbox" id="chk-wind" checked onchange="applyWeatherSettings()"> 顯示實時風速</label>
                 <label><input type="checkbox" id="chk-forecast" checked onchange="applyWeatherSettings()"> 顯示未來兩天預報</label>
                 
-                <!-- 農曆、五行、節氣控制項（預設不勾選） -->
                 <label><input type="checkbox" id="chk-lunar" onchange="applyWeatherSettings()"> 顯示農曆與干支</label>
                 <label><input type="checkbox" id="chk-wuxing" onchange="applyWeatherSettings()"> 顯示八字五行</label>
                 <label><input type="checkbox" id="chk-term" onchange="applyWeatherSettings()"> 顯示二十四節氣</label>
@@ -423,7 +437,6 @@
                     </label>
                 </div>
 
-                <!-- 主題設定區 -->
                 <div class="theme-section">
                     <b>🎨 介面主題：</b>
                     <label><input type="radio" name="theme-choice" id="theme-light" checked onchange="applyThemeSettings()"> ☀️ 淺色模式</label>
@@ -440,30 +453,23 @@
         </div>
     </div>
 
-    <!-- 面板主要網格 -->
     <div class="dashboard-grid">
-        <!-- 1. 綜合巴士面板 -->
         <div class="panel-card" id="bus-card">
             <div class="panel-title bus-title">🚌 綜合巴士到站預報</div>
             
-            <!-- 第一格：九巴 68E, 68F -->
             <div class="bus-section-title kmb" id="kmb-sec-title-1">🔴 九巴班次</div>
             <div id="kmb-container-1">正在載入...</div>
             
-            <!-- 第二格：港鐵巴士 K68, K65 -->
             <div class="bus-section-title mtrb" id="mtrb-sec-title">🔵 港鐵巴士班次</div>
             <div id="mtrb-container">正在載入...</div>
             
-            <!-- 第三格：九巴 268X, 276P, 68X -->
             <div class="bus-section-title kmb" id="kmb-sec-title-2">🔴 九巴班次</div>
             <div id="kmb-container-2">正在載入...</div>
             
-            <!-- 第四格：九巴 268X, 276P, 68X -->
             <div class="bus-section-title kmb" id="kmb-sec-title-3">🔴 九巴班次</div>
             <div id="kmb-container-3">正在載入...</div>
         </div>
 
-        <!-- 2. 輕鐵面板 -->
         <div class="panel-card" id="lrt-card">
             <div class="panel-title lrt-title">🔮 輕鐵下班車</div>
             <div id="lrt-container">正在載入...</div>
